@@ -23,5 +23,5 @@ int index_i;
 index_i * mapCubeSize;
 static_cast<int>(index_i * mapCubeSize);
 ```
-当`index_i`为非负数时候，`index_i * mapCubeSize;`与`static_cast<int>(index_i * mapCubeSize);`结果一样
-但是当`index_i`为负数时候，`index_i * mapCubeSize;`直接就是最大的正整数
+当`index_i`为**非负数**时候，`index_i * mapCubeSize;`与`static_cast<int>(index_i * mapCubeSize);`结果一样。
+但是当`index_i`为**负数**时候，`index_i * mapCubeSize;`直接就是最大的正整数，然后分块索引就出错了。
