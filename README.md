@@ -14,3 +14,14 @@
 待完善
 1. 实现`pcl`读取`bin格式`并转化为`pcd格式`
 2. 根据每个点云帧的位姿(使用ground truth或者估计的位姿也行)实现点云拼接
+
+
+## BUG总结
+```c++
+unsigned int mapCubeSize;
+int index_i;
+index_i * mapCubeSize;
+static_cast<int>(index_i * mapCubeSize);
+```
+当`index_i`为非负数时候，`index_i * mapCubeSize;`与`static_cast<int>(index_i * mapCubeSize);`结果一样
+但是当`index_i`为负数时候，`index_i * mapCubeSize;`直接就是最大的正整数
