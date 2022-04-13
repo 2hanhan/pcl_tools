@@ -23,12 +23,11 @@ namespace PCL_TOOLS
     class ReadGroundTruth
     {
     public:
-        void GetFiles(std::string rootfile);
+        ReadGroundTruth(std::string groundtruthfile);
+        void GetFiles();
 
     public:
-        std::vector<double> timestamp;
         std::string groundtruthfile;
-        std::string lasmapfile;
     };
 }
 

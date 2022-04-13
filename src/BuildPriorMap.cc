@@ -88,9 +88,19 @@ namespace PCL_TOOLS
             T_init(2, 2) = Pose[11];
             T_init(2, 3) = Pose[12];
 
+            Eigen::Matrix4f initialPoseInv = Eigen::Matrix4f::Identity();
+            initialPoseInv.topRightCorner(3, 1) = T_init.topRightCorner(3, 1);
+            Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
+            // z轴旋转-90°
+            trans << 0, 1, 0, 0,
+                -1, 0, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1;
+
             std::cout << "point[0] pose before:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "T_init:" << T_init << std::endl;
-            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, T_init.inverse()); //将点云进行旋转平移变换
+            // pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr,   T_init.inverse()); //将点云进行旋转平移变换
+            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, trans * initialPoseInv.inverse());
             std::cout << "point[0] pose after:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "pose2Identity succeed" << std::endl;
             inFilecsv.close();
@@ -180,20 +190,20 @@ namespace PCL_TOOLS
         for (int index_i = key_x.first; index_i < key_x.second + 1; ++index_i)
         {
             pcl::PointCloud<pcl::PointXYZ>::Ptr subPointCloudPtr(new pcl::PointCloud<pcl::PointXYZ>);
+            pcl::PointCloud<pcl::PointXYZ>::Ptr subTempPtr(new pcl::PointCloud<pcl::PointXYZ>);
 
             pcl::PassThrough<pcl::PointXYZ> pass_x, pass_y;                                                                 // 声明直通滤波
             pass_x.setInputCloud(pointCloudPtr);                                                                            // 传入点云数据
             pass_x.setFilterFieldName("x");                                                                                 // 设置操作的坐标轴
             pass_x.setFilterLimits(static_cast<int>(index_i * mapCubeSize), static_cast<int>((index_i + 1) * mapCubeSize)); // 设置坐标范围
-
             // pass_x.setFilterLimitsNegative(true);//保存范围内or范围外
+
+            pass_x.filter(*subTempPtr); // 进行滤波输出
 
             for (int index_j = key_y.first; index_j < key_y.second + 1; ++index_j)
             {
 
-                pass_x.filter(*subPointCloudPtr); // 进行滤波输出
-
-                pass_y.setInputCloud(subPointCloudPtr);                                                                         // 传入点云数据
+                pass_y.setInputCloud(subTempPtr);                                                                               // 传入点云数据
                 pass_y.setFilterFieldName("y");                                                                                 // 设置操作的坐标轴
                 pass_y.setFilterLimits(static_cast<int>(index_j * mapCubeSize), static_cast<int>((index_j + 1) * mapCubeSize)); // 设置坐标范围
                 // pass_y.setFilterLimitsNegative(true);//保存范围内or范围外

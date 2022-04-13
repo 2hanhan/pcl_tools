@@ -2,11 +2,10 @@
 
 namespace PCL_TOOLS
 {
-    void ReadGroundTruth::GetFiles(
-        std::string rootfile)
+    ReadGroundTruth::ReadGroundTruth(std::string groundtruthfile) : groundtruthfile(groundtruthfile)
     {
-        std::vector<double> timestamp;
-        std::string groundtruthfile = rootfile + "/global_pose.csv";
-        std::string lasmapfile = rootfile + "sick_pointcloud.las";
+    }
+    void ReadGroundTruth::GetFiles()
+    {
     }
 }
