@@ -88,19 +88,14 @@ namespace PCL_TOOLS
             T_init(2, 2) = Pose[11];
             T_init(2, 3) = Pose[12];
 
-            Eigen::Matrix4f initialPoseInv = Eigen::Matrix4f::Identity();
-            initialPoseInv.topRightCorner(3, 1) = T_init.topRightCorner(3, 1);
             Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-            // z轴旋转-90°
-            trans << 0, 1, 0, 0,
-                -1, 0, 0, 0,
-                0, 0, 1, 0,
-                0, 0, 0, 1;
+
+            // z轴旋转90°
+            trans << 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
 
             std::cout << "point[0] pose before:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "T_init:" << T_init << std::endl;
-            // pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr,   T_init.inverse()); //将点云进行旋转平移变换
-            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, trans * initialPoseInv.inverse());
+            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, T_init.inverse()); //将点云进行旋转平移变换
             std::cout << "point[0] pose after:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "pose2Identity succeed" << std::endl;
             inFilecsv.close();
