@@ -1,6 +1,14 @@
 # pcl_tools
 学习`pcl`,使用`pcl`库的功能实现
 
+# Install
+## 1. Prerequisites
+### 1.1 **Dependencies**
+1. `Eigen3`Tested with Eigen 3.3.7.
+2. `libLAS`Tested with libLAS 1.8.1.
+3. `PCL`Tested with PCL 1.9.1.
+
+# 功能介绍
 ## 读取groundtru(src/ReadGroundTruth.h)
 待完善
 1. 读取`ground truth`存储位姿到`eigen3`

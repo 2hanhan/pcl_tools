@@ -48,9 +48,9 @@ ${libLAS_LIBRARIES}
 # examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-add_executable(kaisturban27
-        Examples/KaistUrban27.cc)
-target_link_libraries(kaisturban27 ${PROJECT_NAME})
+add_executable(kaisturban
+        Examples/KaistUrban.cc)
+target_link_libraries(kaisturban ${PROJECT_NAME})
 
 add_executable(matrix2 Examples/matrix2.cc)
 target_link_libraries(matrix2

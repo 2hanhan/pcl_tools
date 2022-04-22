@@ -12,12 +12,26 @@ Type stringToNum(const std::string &str)
 
 namespace PCL_TOOLS
 {
+    /**
+     * @brief Construct a new Build Prior Map:: Build Prior Map object
+     *
+     * @param rootfile urban格式数据集根目录
+     * @param PriorMapDir PCD格式先验地图输出保存路径
+     */
     BuildPriorMap::BuildPriorMap(std::string rootfile, std::string PriorMapDir) : rootfile(rootfile), PriorMapDir(PriorMapDir), pointCloudPtr(new pcl::PointCloud<pcl::PointXYZ>), pointCloudNormalsPtr(new pcl::PointCloud<pcl::Normal>)
     {
         std::cout << "rootfile:" << rootfile << std::endl;
         std::cout << "PriorMapDir:" << PriorMapDir << std::endl;
     }
 
+    /**
+     * @brief  PointXYZ地图进行下采样滤波
+     *
+     * @param filterptr 输入地图
+     * @param x 滤波网格大小
+     * @param y 滤波网格大小
+     * @param z 滤波网格大小
+     */
     void BuildPriorMap::MapPointXYZFilter(pcl::PointCloud<pcl::PointXYZ>::Ptr filterptr, float x, float y, float z)
     {
 
@@ -27,6 +41,12 @@ namespace PCL_TOOLS
         filter.filter(*filterptr);            //获得滤波结果
     }
 
+    /**
+     * @brief 读取las数据格式转换为pcd格式
+     *
+     * @param bSaveAllPCD 是否保存完整的pcd格式地图
+     * @param pose2Identity 是否对初始位姿进行坐标变换
+     */
     void BuildPriorMap::readlas2pcl(bool bSaveAllPCD, bool pose2Identity)
     {
         std::string lasfile = rootfile + "sick_pointcloud.las";
@@ -89,13 +109,19 @@ namespace PCL_TOOLS
             T_init(2, 3) = Pose[12];
 
             Eigen::Matrix4f trans = Eigen::Matrix4f::Identity();
-
             // z轴旋转90°
             trans << 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
 
+            // Urban39
+            Eigen::Matrix4f Vehicle2IMU;
+            Vehicle2IMU << 1, 0, 0, -0.07,
+                0, 1, 0, 0,
+                0, 0, 1, 1.7,
+                0, 0, 0, 1;
+
             std::cout << "point[0] pose before:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "T_init:" << T_init << std::endl;
-            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, T_init.inverse()); //将点云进行旋转平移变换
+            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, Vehicle2IMU * T_init.inverse()); //将点云进行旋转平移变换到IMU坐标系
             std::cout << "point[0] pose after:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "pose2Identity succeed" << std::endl;
             inFilecsv.close();
@@ -155,6 +181,11 @@ namespace PCL_TOOLS
         n.compute(*NormalPtr); //开始进行法向计
     }
 
+    /**
+     * @brief  保存分块地图
+     *
+     * @param mapCubeSize 分块地图大小
+     */
     void BuildPriorMap::SavePriorMap(unsigned int mapCubeSize)
     {
 
