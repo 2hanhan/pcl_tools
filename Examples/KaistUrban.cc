@@ -1,5 +1,4 @@
 #include <iostream>
-#include <ReadGroundTruth.h>
 #include <BuildPriorMap.h>
 int main(int agrc, char **argv)
 {

@@ -31,9 +31,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 
 add_library(${PROJECT_NAME} SHARED
-src/ReadGroundTruth.cc
 src/BuildPriorMap.cc
-include/ReadGroundTruth.h
 include/BuildPriorMap.h
 )
 
@@ -48,10 +46,18 @@ ${libLAS_LIBRARIES}
 # examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
+# kaist数据集的先验地图处理
 add_executable(kaisturban
         Examples/KaistUrban.cc)
 target_link_libraries(kaisturban ${PROJECT_NAME})
 
+# kitti数据集的先验地图处理
+add_executable(kitti
+        Examples/Kitti.cc)
+target_link_libraries(kitti ${PROJECT_NAME})
+
+
+#求解坐标变换
 add_executable(matrix2 Examples/matrix2.cc)
 target_link_libraries(matrix2
 ${EIGEN3_LIBS})

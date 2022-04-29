@@ -10,6 +10,11 @@ Type stringToNum(const std::string &str)
     return num;
 }
 
+bool computePairNum(std::string pair1, std::string pair2)
+{
+    return pair1 < pair2;
+}
+
 namespace PCL_TOOLS
 {
     /**
@@ -22,6 +27,64 @@ namespace PCL_TOOLS
     {
         std::cout << "rootfile:" << rootfile << std::endl;
         std::cout << "PriorMapDir:" << PriorMapDir << std::endl;
+        GroundTruth = rootfile + "07.txt";
+        MapbinDir = rootfile + "velodyne/";
+        MappcdDir = rootfile + "pcd/";
+    }
+
+    /**
+     * @brief
+     *
+     * @param dir 文件夹路径
+     * @param Suffix 要获取的文件后缀名
+     * @param files 获取文件路径名称存储向量
+     */
+    void BuildPriorMap::LoadFiles(std::string DirPath, std::string Suffix, std::vector<std::string> &files)
+    {
+        std::cout << "DirPath : " << DirPath << "  get[*." << Suffix << "]files";
+        std::vector<std::string> file_lists;
+        // step 1 获取指定后缀的所有文件
+        struct dirent *ptr;
+        DIR *dir;
+        dir = opendir(DirPath.c_str());
+        file_lists.clear();
+        while ((ptr = readdir(dir)) != NULL)
+        {
+            std::string tmp_file = ptr->d_name;
+            if (tmp_file[0] == '.')
+            { //取读取文件的第一个字符，如果为.则说明是隐藏文件不读取
+                continue;
+            }
+            if (Suffix.size() <= 0)
+            { //如果无传入的类型，则该路径下所有文件都读取
+                file_lists.push_back(ptr->d_name);
+            }
+            else
+            {
+                if (tmp_file.size() < Suffix.size())
+                {
+                    //说明不可能，也就是文件名的长度小于后缀名这3长度
+                    continue;
+                }
+                std::string tmp_cut_type = tmp_file.substr(tmp_file.size() - Suffix.size(), Suffix.size()); //截取后三位
+                if (tmp_cut_type == Suffix)
+                { //如果截取文件名的后三位和传入的类型一致的话，添加这个文件的全称包括后缀
+                    file_lists.push_back(ptr->d_name);
+                }
+            }
+        }
+        // step 2 对指定文件进行排序
+        if (file_lists.empty())
+            return;
+        std::sort(file_lists.begin(), file_lists.end(), computePairNum); //按照computePairNum函数的方法进行排序
+
+        // step 3 保存排序结果
+        for (int i = 0; i < file_lists.size(); ++i)
+        {
+            std::string file = file_lists[i];
+            files.push_back(file); //将文件名字传入到pcd_filename里
+        }
+        std::cout << "num:" << files.size() << std::endl;
     }
 
     /**
@@ -121,7 +184,7 @@ namespace PCL_TOOLS
 
             std::cout << "point[0] pose before:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "T_init:" << T_init << std::endl;
-            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, Vehicle2IMU * T_init.inverse()); //将点云进行旋转平移变换到IMU坐标系
+            pcl::transformPointCloud(*pointCloudPtr, *pointCloudPtr, Vehicle2IMU.inverse() * T_init.inverse()); //将点云进行旋转平移变换到IMU坐标系
             std::cout << "point[0] pose after:" << (*pointCloudPtr)[0] << std::endl;
             std::cout << "pose2Identity succeed" << std::endl;
             inFilecsv.close();
@@ -151,7 +214,8 @@ namespace PCL_TOOLS
                 }
             }
         }
- */
+        */
+
         if (bSaveAllPCD)
         {
             std::string pcdfile = PriorMapDir + "allpointCloud.pcd";
@@ -164,6 +228,155 @@ namespace PCL_TOOLS
         }
 
         inFile.close();
+        std::cout << "las2pcl finished!" << std::endl;
+    }
+
+    /**
+     * @brief
+     *
+     * @param _MapbinDir bin格式地图路径
+     * @param _MappcdDir 保存pcd格式地图路径
+     */
+    void BuildPriorMap::bin2pcd(std::string _MapbinDir, std::string _MappcdDir)
+    {
+        std::cout << "load bin map from: " << _MapbinDir << " and save pcd map" << std::endl;
+        //设置路径
+        MapbinDir = _MapbinDir;
+        MappcdDir = _MappcdDir;
+        //获取文件名称
+        std::vector<std::string> binfiles;
+        std::string suffix = "bin";
+        LoadFiles(MapbinDir, suffix, binfiles);
+        //读取bin
+        int32_t num = 1000000;
+        int32_t file_size;
+        float *data;
+        pcl::PointCloud<pcl::PointXYZI> point_cloud;
+        for (int i = 0; i < binfiles.size(); ++i)
+        {
+            data = (float *)malloc(num * sizeof(float));
+            // pointers
+            float *px = data + 0;
+            float *py = data + 1;
+            float *pz = data + 2;
+            float *pr = data + 3;
+
+            std::string binfile = MapbinDir + binfiles[i]; //存储路径 + 文件名
+            std::cout << "binfile:[" << binfile << "]  ";
+            std::fstream a_file(binfile.c_str(), std::ios::binary | std::ios::in | std::ios::ate);
+            file_size = a_file.tellg();
+            std::cout << "file size: " << file_size << "  ";
+            a_file.seekg(0, std::ios::beg);
+            if (!a_file.read(reinterpret_cast<char *>(data), file_size))
+            {
+                std::cout << "Error reading from file" << std::endl;
+                return;
+            }
+            point_cloud.clear();
+            point_cloud.width = (file_size / sizeof(float)) / 4;
+            point_cloud.height = 1;
+            point_cloud.is_dense = false;
+            point_cloud.points.resize(point_cloud.width * point_cloud.height);
+            std::cout << "resized to " << point_cloud.points.size() << std::endl;
+            // fill in the point cloud
+            for (int j = 0; j < point_cloud.points.size(); ++j)
+            {
+                point_cloud.points[j].x = *px;
+                point_cloud.points[j].y = *py;
+                point_cloud.points[j].z = *pz;
+                point_cloud.points[j].intensity = *pr;
+                px += 4;
+                py += 4;
+                pz += 4;
+                pr += 4;
+            }
+            //保存pcd格式
+            std::string name = binfiles[i].substr(0, binfiles[i].size() - suffix.size() - 1); //去掉后缀名三位
+            std::string pcdfile = MappcdDir + name + ".pcd";
+            std::cout << "save:[" << pcdfile << "]" << std::endl;
+            pcl::io::savePCDFileASCII(pcdfile, point_cloud);
+        }
+        std::cout << "bin2pcd finished!" << std::endl;
+    }
+
+    /**
+     * @brief
+     *
+     * @param GroundTruth  位姿真值的 txt
+     * @param bSaveAllPCD  是否保存拼接后的地图
+     */
+    void BuildPriorMap::readpcd2pcl(std::string _GroundTruth, bool bSaveAllPCD)
+    {
+        GroundTruth = _GroundTruth;
+        //获取文件名称
+        std::vector<std::string> pcdfiles;
+        std::string suffix = "pcd";
+        LoadFiles(MappcdDir, suffix, pcdfiles);
+
+        //读取ground进行地图拼接
+        std::ifstream FileIn(GroundTruth);
+        std::cout << "GroundTruth:[" << GroundTruth << "]" << std::endl;
+
+        Eigen::Matrix4f pose_GT;
+        Eigen::Matrix4f velo2cam, cam2velo;
+
+        //给两个变换矩阵赋初值
+        cam2velo << 0, 0, 1, 0,
+            -1, 0, 0, 0,
+            0, -1, 0, 0.08,
+            0, 0, 0, 1;
+
+        velo2cam << 0, -1, 0, 0,
+            0, 0, -1, 0,
+            1, 0, 0, -0.08,
+            0, 0, 0, 1;
+
+        int i = 0;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr source(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr target(new pcl::PointCloud<pcl::PointXYZ>);
+
+        while (FileIn >> pose_GT(0, 0) >> pose_GT(0, 1) >> pose_GT(0, 2) >> pose_GT(0, 3) >> pose_GT(1, 0) >> pose_GT(1, 1) >> pose_GT(1, 2) >> pose_GT(1, 3) >> pose_GT(2, 0) >> pose_GT(2, 1) >> pose_GT(2, 2) >> pose_GT(2, 3))
+        {
+            pose_GT(3, 0) = 0;
+            pose_GT(3, 1) = 0;
+            pose_GT(3, 2) = 0;
+            pose_GT(3, 3) = 1;
+            // pose_GT = cam2velo * pose_data2 * velo2cam; //激光坐标系下的
+            pose_GT = pose_GT * velo2cam; //相机坐标系下的
+
+            std::string pcdfile = MappcdDir + pcdfiles[i];
+            std::cout << "load:[" << pcdfile << "]";
+
+            pcl::io::loadPCDFile(pcdfile, *source); //读入pcd格式的文件
+            std::cout << " !" << std::endl;
+
+            //将点云按照transform[i]的变换矩阵进行旋转平移变换，最终存入target中
+            MapPointXYZFilter(source, 0.2, 0.2, 0.2); //滤波
+            pcl::transformPointCloud(*source, *target, pose_GT);
+            //拼接
+
+            *pointCloudPtr = *pointCloudPtr + *target;
+            i++;
+        }
+
+        std::vector<int> indices_src; //保存去除的点的索引
+        //移除 NaNs，从传感器获得的点云可能包含几种测量误差和/或不准确。其中之一是在一些点的坐标中存在NaN（不是数）值，
+        pcl::removeNaNFromPointCloud(*pointCloudPtr, *pointCloudPtr, indices_src);
+
+        BuildNormalsMap(pointCloudPtr, pointCloudNormalsPtr); //构建法向量地图
+
+        if (bSaveAllPCD)
+        {
+            std::string pcdfile = PriorMapDir + "allpointCloud.pcd";
+            pcl::io::savePCDFileASCII(pcdfile, *pointCloudPtr);
+            std::cout << "allpointCloud.cd save:" << pcdfile << std::endl;
+
+            pcdfile = PriorMapDir + "allnoramls.pcd";
+            pcl::io::savePCDFileASCII(pcdfile, *pointCloudNormalsPtr);
+            std::cout << "allnoramls.cd save:" << pcdfile << std::endl;
+        }
+        FileIn.close();
+        std::cout << "pcl2pcl finished!" << std::endl;
     }
 
     void BuildPriorMap::BuildNormalsMap(pcl::PointCloud<pcl::PointXYZ>::Ptr PointXYZPtr, pcl::PointCloud<pcl::Normal>::Ptr NormalPtr)
