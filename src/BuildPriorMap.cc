@@ -192,24 +192,20 @@ namespace PCL_TOOLS
 
         BuildNormalsMap(pointCloudPtr, pointCloudNormalsPtr); //构建法向量地图
 
+        // 调试 z 轴的方向, 使用pcl_viewer 查看pcd文件
         /*
         {
-            for (int index_i = -1; index_i < 26; ++index_i)
+            for (int index_i = -2; index_i < 2; ++index_i)
             {
-                for (int index_j = -22; index_j < 2; ++index_j)
+                for (int index_j = -2; index_j < 2; ++index_j)
                 {
-                    for (int j = 0; j < 100; j++)
+                    for (int j = 0; j < 200; j++)
                     {
-                        if (index_i < 0 || index_j < 0)
-                        {
-                            pcl::PointXYZ z(index_i * 50, index_j * 50, -j - 10);
-                            pointCloudPtr->push_back(z);
-                        }
-                        else
-                        {
-                            pcl::PointXYZ z(index_i * 50, index_j * 50, j + 10);
-                            pointCloudPtr->push_back(z);
-                        }
+                        pcl::PointXYZ point_z;
+                        point_z.x = index_i * 50;
+                        point_z.y = index_j * 50;
+                        point_z.z = 10 * j;
+                        pointCloudPtr->push_back(point_z);
                     }
                 }
             }
@@ -220,11 +216,11 @@ namespace PCL_TOOLS
         {
             std::string pcdfile = PriorMapDir + "allpointCloud.pcd";
             pcl::io::savePCDFileASCII(pcdfile, *pointCloudPtr);
-            std::cout << "allpointCloud.cd save:" << pcdfile << std::endl;
+            std::cout << "allpointCloud.pcd save:" << pcdfile << std::endl;
 
             pcdfile = PriorMapDir + "allnoramls.pcd";
             pcl::io::savePCDFileASCII(pcdfile, *pointCloudNormalsPtr);
-            std::cout << "allnoramls.cd save:" << pcdfile << std::endl;
+            std::cout << "allnoramls.pcd save:" << pcdfile << std::endl;
         }
 
         inFile.close();
@@ -318,7 +314,7 @@ namespace PCL_TOOLS
         std::cout << "GroundTruth:[" << GroundTruth << "]" << std::endl;
 
         Eigen::Matrix4f pose_GT;
-        Eigen::Matrix4f velo2cam, cam2velo;
+        Eigen::Matrix4f velo2cam, cam2velo, x_270;
 
         //给两个变换矩阵赋初值
         cam2velo << 0, 0, 1, 0,
@@ -329,6 +325,13 @@ namespace PCL_TOOLS
         velo2cam << 0, -1, 0, 0,
             0, 0, -1, 0,
             1, 0, 0, -0.08,
+            0, 0, 0, 1;
+
+        // !kitti的z轴是前进方向所以是不是应该按照x,z轴分块
+        // ! 要不就整体绕x旋转-90° //实现这一种方式吧
+        x_270 << 1, 0, 0, 0,
+            0, 0, 1, 0,
+            0, -1, 0, 0,
             0, 0, 0, 1;
 
         int i = 0;
@@ -351,8 +354,8 @@ namespace PCL_TOOLS
             std::cout << " !" << std::endl;
 
             //将点云按照transform[i]的变换矩阵进行旋转平移变换，最终存入target中
-            MapPointXYZFilter(source, 0.2, 0.2, 0.2); //滤波
-            pcl::transformPointCloud(*source, *target, pose_GT);
+            MapPointXYZFilter(source, 0.2, 0.2, 0.2);                    //滤波
+            pcl::transformPointCloud(*source, *target, x_270 * pose_GT); //绕x轴再旋转90°
             //拼接
 
             *pointCloudPtr = *pointCloudPtr + *target;
@@ -365,15 +368,35 @@ namespace PCL_TOOLS
 
         BuildNormalsMap(pointCloudPtr, pointCloudNormalsPtr); //构建法向量地图
 
+        // 调试 z 轴的方向, 使用pcl_viewer 查看pcd文件
+        /*
+        {
+            for (int index_i = -2; index_i < 2; ++index_i)
+            {
+                for (int index_j = -2; index_j < 2; ++index_j)
+                {
+                    for (int j = 0; j < 50; j++)
+                    {
+                        pcl::PointXYZ point_z;
+                        point_z.x = index_i * 50;
+                        point_z.y = index_j * 50;
+                        point_z.z = 10 * j;
+                        pointCloudPtr->push_back(point_z);
+                    }
+                }
+            }
+        }
+        */
+
         if (bSaveAllPCD)
         {
             std::string pcdfile = PriorMapDir + "allpointCloud.pcd";
             pcl::io::savePCDFileASCII(pcdfile, *pointCloudPtr);
-            std::cout << "allpointCloud.cd save:" << pcdfile << std::endl;
+            std::cout << "allpointCloud.pcd save:" << pcdfile << std::endl;
 
             pcdfile = PriorMapDir + "allnoramls.pcd";
             pcl::io::savePCDFileASCII(pcdfile, *pointCloudNormalsPtr);
-            std::cout << "allnoramls.cd save:" << pcdfile << std::endl;
+            std::cout << "allnoramls.pcd save:" << pcdfile << std::endl;
         }
         FileIn.close();
         std::cout << "pcl2pcl finished!" << std::endl;

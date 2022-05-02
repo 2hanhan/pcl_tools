@@ -9,9 +9,11 @@
 3. `PCL`Tested with PCL 1.9.1.
 
 # 功能介绍
-## 读取groundtru(src/ReadGroundTruth.h)
-待完善
-1. 读取`ground truth`存储位姿到`eigen3`
+## 文件操作
+一些内含的小功能
+1. 读取指定路径下的指定后缀名称的文件的文件名
+2. 将获取的所有的文件名的列表进行排序生成新的列表
+3. 没做的:其实可以扩展一下保存文件名的txt
 
 ## 构建先验地图(include/BuildPriorMap.h)
 实现功能

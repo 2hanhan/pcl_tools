@@ -9,8 +9,9 @@ int main(int agrc, char **argv)
     std::string MapbinDir = "/home/wgq/datas/KITTI/07/velodyne/";
     std::string MappcdDir = "/home/wgq/datas/KITTI/07/pcd/";
     PCL_TOOLS::BuildPriorMap kitti(rootfile, PriorMapDir);
+    // step 1.1 bin转化pcd
     kitti.bin2pcd(MapbinDir, MappcdDir);
-    //   step 2 根据GT拼接
+    //    step 2 根据GT拼接pcd
     kitti.readpcd2pcl(GroundTruth, true);
     //   step 3 分块保存
     kitti.SavePriorMap(50);
